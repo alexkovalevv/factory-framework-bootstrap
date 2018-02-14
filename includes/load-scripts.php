@@ -20,7 +20,7 @@
 
 	/**
 	 * Фукнция получает контент файла
-	 * @param type $path - путь к файлу
+	 * @param string $path - путь к файлу
 	 * @return string
 	 */
 	function get_file($path)

@@ -2,12 +2,17 @@
 	/**
 	 * Factory Bootstrap
 	 *
-	 * @author Paul Kashtanoff <paul@byonepress.com>, Webcraftic <wordpress.webraftic@gmail.com>
-	 * @copyright (c) 2013, OnePress Ltd, (c) 2017 Webcraftic Ltd
+	 * @author Alex Kovalev <alex.kovalevv@gmail.com>
+	 * @copyright (c) 2018, Webcraftic Ltd
 	 *
 	 * @package factory-bootstrap
 	 * @since 1.0.0
 	 */
+
+	// Exit if accessed directly
+	if( !defined('ABSPATH') ) {
+		exit;
+	}
 
 	// module provides function only for the admin area
 	if( !is_admin() ) {
@@ -24,6 +29,7 @@
 
 	// sets version of admin interface
 	define('FACTORY_BOOTSTRAP_000_VERSION', 'FACTORY_BOOTSTRAP_000');
+
 	if( !defined('FACTORY_FLAT_ADMIN') ) {
 		define('FACTORY_FLAT_ADMIN', true);
 	}
