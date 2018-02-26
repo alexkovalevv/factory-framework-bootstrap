@@ -139,75 +139,14 @@
 							break;
 					}
 				}
-				
-				// Issue #FB-3:
-				// Tests if we can access load-styles.php and load-scripts.php remotely.
-				// If yes, we use load-styles.php and load-scripts.php to load, merge and compress css and js.
-				// Otherwise, every resource will be loaded separatly.
-				
-				$is_wp_content_access_tested = $this->plugin->getOption('factory_wp_content_access_tested', false);
-				
-				if( !$is_wp_content_access_tested ) {
-					$this->plugin->updateOption('factory_css_js_compression', false);
-					$this->plugin->updateOption('factory_wp_content_access_tested', true);
-					
-					if( function_exists('wp_remote_get') ) {
-						$result = wp_remote_get(FACTORY_BOOTSTRAP_000_URL . '/includes/load-scripts.php?test=1');
-						if( !is_wp_error($result) && $result && isset($result['body']) && $result['body'] == 'success' ) {
-							$this->plugin->updateOption('factory_css_js_compression', true);
-						}
-					}
+
+				if( !empty($this->scripts) ) {
+					$this->enqueueScripts($this->scripts, 'js', $dependencies);
 				}
-				
-				$compression = $this->plugin->getOption('factory_css_js_compression', false);
-				
-				if( !$compression ) {
-					
-					$id = md5(FACTORY_BOOTSTRAP_000_VERSION);
-					
-					$is_first = true;
-					foreach($this->scripts as $script_to_load) {
-						$script_to_load = sanitize_text_field($script_to_load);
-						wp_enqueue_script($script_to_load . '-' . $id, FACTORY_BOOTSTRAP_000_URL . "/assets/js/$script_to_load.js", $is_first
-							? $dependencies
-							: false, $this->plugin->getPluginVersion());
-						$is_first = false;
-					}
-					
-					foreach($this->styles as $style_to_load) {
-						$style_to_load = sanitize_text_field($style_to_load);
-						wp_enqueue_style($style_to_load . '-' . $id, FACTORY_BOOTSTRAP_000_URL . "/assets/flat/css/$style_to_load.css", array(), $this->plugin->getPluginVersion());
-					}
-					// - //
-					
-				} else {
-					
-					$load_scripts_out = join(',', $this->scripts);
-					$load_styles_out = join(',', $this->styles);
-					
-					if( defined('WP_DEBUG') && WP_DEBUG ) {
-						$load_scripts_out .= "&debug=true";
-						$load_styles_out .= "&debug=true";
-					}
-					
-					if( !empty($this->styles) ) {
-						$id = md5($load_styles_out . FACTORY_BOOTSTRAP_000_VERSION);
-						wp_enqueue_style('wbcr-factory-bootstrap-000-' . $id, FACTORY_BOOTSTRAP_000_URL . '/includes/load-styles.php?folder=flat&load=' . $load_styles_out, array(), $this->plugin->getPluginVersion());
-					}
-					
-					if( !empty($this->scripts) ) {
-						$id = md5($load_scripts_out . FACTORY_BOOTSTRAP_000_VERSION);
-						wp_enqueue_script('wbcr-factory-bootstrap-000-' . $id, FACTORY_BOOTSTRAP_000_URL . '/includes/load-scripts.php?load=' . $load_scripts_out, $dependencies, $this->plugin->getPluginVersion());
-					}
-					
-					// Issue #FB-4:
-					// Some themes and plugins contain the functions which remove arguments from the scripts and styles paths.
-					// If we use the compression, we need to check whether the paths are the same.
-					
-					add_filter('script_loader_src', array($this, 'testKeepingArgsInPaths'), 99999, 2);
-					add_filter('style_loader_src', array($this, 'testKeepingArgsInPaths'), 99999, 2);
+				if( !empty($this->styles) ) {
+					$this->enqueueScripts($this->styles, 'css', $dependencies);
 				}
-				
+
 				$user_id = get_current_user_id();
 				$color_name = get_user_meta($user_id, 'admin_color', true);
 				
@@ -257,33 +196,81 @@
 				</script>
 			<?php
 			}
-			
+
 			/**
-			 * Tests whether the scripts and styles path contain query arguments or them were removed.
-			 *
-			 * See 'script_loader_src'
-			 * See 'style_loader_src'
-			 *
-			 * @param string $src
-			 * @param string $handle
-			 * @return mixed
+			 * @param array $sripts
+			 * @param string $type
+			 * @param array $dependencies
 			 */
-			public function testKeepingArgsInPaths($src, $handle)
+			protected function enqueueScripts(array $sripts, $type = 'js', array $dependencies)
 			{
-				if( substr($handle, 0, 22) !== 'wbcr-factory-bootstrap-000-' ) {
-					return $src;
+
+				$is_first = true;
+				$cache_id = md5(implode(',', $this->scripts) . $type . $this->plugin->getPluginVersion());
+				$cache_dir_path = FACTORY_BOOTSTRAP_000_DIR . '/assets/cache/';
+				$cache_dir_url = FACTORY_BOOTSTRAP_000_URL . '/assets/cache/';
+
+				$cache_filepath = $cache_dir_path . $cache_id . ".min." . $type;
+				$cache_fileurl = $cache_dir_url . $cache_id . ".min." . $type;
+
+				if( file_exists($cache_filepath) ) {
+					if( $type == 'js' ) {
+						wp_enqueue_script('wbcr-factory-bootstrap-' . $cache_id, $cache_fileurl, $dependencies, $this->plugin->getPluginVersion());
+					} else {
+						wp_enqueue_style('wbcr-factory-bootstrap-' . $cache_id, $cache_fileurl, array(), $this->plugin->getPluginVersion());
+					}
+				} else {
+					$cache_dir_exists = false;
+					if( !file_exists($cache_dir_path) ) {
+						if( @mkdir($cache_dir_path, 0777) && is_writable($cache_dir_path) ) {
+							$cache_dir_exists = true;
+						}
+					} else {
+						if( is_writable($cache_dir_path) ) {
+							$cache_dir_exists = true;
+						}
+					}
+
+					$concat_files = array();
+					foreach($sripts as $script_to_load) {
+						$script_to_load = sanitize_text_field($script_to_load);
+						if( $cache_dir_exists ) {
+							$fname = FACTORY_BOOTSTRAP_000_DIR . "/assets/$type-min/$script_to_load.min." . $type;
+							if( file_exists($fname) ) {
+								$f = @fopen($fname, 'r');
+								$concat_files[] = @fread($f, filesize($fname));
+								@fclose($f);
+							}
+						} else {
+							if( $type == 'js' ) {
+								wp_enqueue_script(md5($script_to_load), FACTORY_BOOTSTRAP_000_URL . "/assets/$type-min/$script_to_load.min." . $type, $is_first
+									? $dependencies
+									: false, $this->plugin->getPluginVersion());
+							} else {
+								wp_enqueue_style(md5($script_to_load), FACTORY_BOOTSTRAP_000_URL . "/assets/$type-min/$script_to_load.min." . $type, array(), $this->plugin->getPluginVersion());
+							}
+							$is_first = false;
+						}
+					}
+
+					if( $cache_dir_exists && !empty($concat_files) ) {
+
+						$cf = @fopen($cache_filepath, 'w');
+						$write_content = implode(PHP_EOL, $concat_files);
+						@fwrite($cf, $write_content);
+						@fclose($cf);
+
+						if( file_exists($cache_filepath) ) {
+							if( $type == 'js' ) {
+								wp_enqueue_script('wbcr-factory-bootstrap-' . $cache_id, $cache_fileurl, $dependencies, $this->plugin->getPluginVersion());
+							} else {
+								wp_enqueue_style('wbcr-factory-bootstrap-' . $cache_id, $cache_fileurl, array(), $this->plugin->getPluginVersion());
+							}
+						}
+					}
 				}
-				
-				$parts = explode('?', $src);
-				if( count($parts) > 1 ) {
-					return $src;
-				}
-				
-				$this->plugin->updateOption('factory_css_js_compression', false);
-				
-				return $src;
 			}
-			
+
 			/**
 			 * Adds the body classes: 'factory-flat or 'factory-volumetric'.
 			 *
@@ -296,7 +283,7 @@
 				$classes .= FACTORY_FLAT_ADMIN
 					? ' factory-flat '
 					: ' factory-volumetric ';
-				
+
 				return $classes;
 			}
 		}
