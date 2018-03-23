@@ -151,7 +151,9 @@
 				$color_name = get_user_meta($user_id, 'admin_color', true);
 				
 				if( $color_name !== 'fresh' ) {
-					wp_enqueue_style('wbcr-factory-bootstrap-000-colors', FACTORY_BOOTSTRAP_000_URL . '/assets/flat/css/bootstrap.' . $color_name . '.css');
+					if( file_exists(FACTORY_BOOTSTRAP_000_DIR . '/assets/flat/css/bootstrap.' . $color_name . '.css') ) {
+						wp_enqueue_style('wbcr-factory-bootstrap-000-colors', FACTORY_BOOTSTRAP_000_URL . '/assets/flat/css/bootstrap.' . $color_name . '.css');
+					}
 				}
 				
 				if( $color_name == 'light' ) {
