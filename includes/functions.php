@@ -122,7 +122,7 @@
 				
 				do_action('wbcr_factory_000_bootstrap_enqueue_scripts', $hook);
 				do_action('wbcr_factory_000_bootstrap_enqueue_scripts_' . $this->plugin->getPluginName(), $hook);
-				
+
 				$dependencies = array();
 				if( !empty($this->scripts) ) {
 					$dependencies[] = 'jquery';
