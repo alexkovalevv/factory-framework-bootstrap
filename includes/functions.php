@@ -224,11 +224,11 @@
 				} else {
 					$cache_dir_exists = false;
 					if( !file_exists($cache_dir_path) ) {
-						if( @mkdir($cache_dir_path, 0777) && is_writable($cache_dir_path) ) {
+						if( @mkdir($cache_dir_path, 0777) && wp_is_writable($cache_dir_path) ) {
 							$cache_dir_exists = true;
 						}
 					} else {
-						if( is_writable($cache_dir_path) ) {
+						if( wp_is_writable($cache_dir_path) ) {
 							$cache_dir_exists = true;
 						}
 					}
