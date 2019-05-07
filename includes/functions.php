@@ -203,7 +203,15 @@ if ( ! class_exists( 'Wbcr_FactoryBootstrap000_Manager' ) ) {
 		 */
 		protected function enqueueScripts( array $sripts, $type = 'js', array $dependencies ) {
 
-			$is_first       = true;
+			$is_first = true;
+
+			/**
+			 * Sets permission for file caching and combining into one file.
+			 *
+			 * @since 4.1.0
+			 */
+			$cache_enable = apply_filters( 'wbcr/factory/bootstrap/cache_enable', true );
+
 			$cache_id       = md5( implode( ',', $this->scripts ) . $type . $this->plugin->getPluginVersion() );
 			$cache_dir_path = FACTORY_BOOTSTRAP_000_DIR . '/assets/cache/';
 			$cache_dir_url  = FACTORY_BOOTSTRAP_000_URL . '/assets/cache/';
@@ -211,7 +219,7 @@ if ( ! class_exists( 'Wbcr_FactoryBootstrap000_Manager' ) ) {
 			$cache_filepath = $cache_dir_path . $cache_id . ".min." . $type;
 			$cache_fileurl  = $cache_dir_url . $cache_id . ".min." . $type;
 
-			if ( file_exists( $cache_filepath ) ) {
+			if ( $cache_enable && file_exists( $cache_filepath ) ) {
 				if ( $type == 'js' ) {
 					wp_enqueue_script( 'wbcr-factory-bootstrap-' . $cache_id, $cache_fileurl, $dependencies, $this->plugin->getPluginVersion() );
 				} else {
@@ -220,7 +228,7 @@ if ( ! class_exists( 'Wbcr_FactoryBootstrap000_Manager' ) ) {
 			} else {
 				$cache_dir_exists = false;
 				if ( ! file_exists( $cache_dir_path ) ) {
-					if ( @mkdir( $cache_dir_path, 0777 ) && wp_is_writable( $cache_dir_path ) ) {
+					if ( @mkdir( $cache_dir_path, 0755 ) && wp_is_writable( $cache_dir_path ) ) {
 						$cache_dir_exists = true;
 					}
 				} else {
@@ -232,7 +240,7 @@ if ( ! class_exists( 'Wbcr_FactoryBootstrap000_Manager' ) ) {
 				$concat_files = [];
 				foreach ( $sripts as $script_to_load ) {
 					$script_to_load = sanitize_text_field( $script_to_load );
-					if ( $cache_dir_exists ) {
+					if ( $cache_enable && $cache_dir_exists ) {
 						$fname = FACTORY_BOOTSTRAP_000_DIR . "/assets/$type-min/$script_to_load.min." . $type;
 						if ( file_exists( $fname ) ) {
 							$f              = @fopen( $fname, 'r' );
@@ -249,12 +257,13 @@ if ( ! class_exists( 'Wbcr_FactoryBootstrap000_Manager' ) ) {
 					}
 				}
 
-				if ( $cache_dir_exists && ! empty( $concat_files ) ) {
+				if ( $cache_enable && $cache_dir_exists && ! empty( $concat_files ) ) {
 
 					$cf            = @fopen( $cache_filepath, 'w' );
 					$write_content = implode( PHP_EOL, $concat_files );
 					@fwrite( $cf, $write_content );
 					@fclose( $cf );
+					chmod( $cache_filepath, 0755 );
 
 					if ( file_exists( $cache_filepath ) ) {
 						if ( $type == 'js' ) {
