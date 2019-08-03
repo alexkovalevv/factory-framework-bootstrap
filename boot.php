@@ -26,11 +26,21 @@ if ( defined( 'FACTORY_BOOTSTRAP_000_LOADED' ) ) {
 define( 'FACTORY_BOOTSTRAP_000_VERSION', '4.1.6' );
 define( 'FACTORY_BOOTSTRAP_000_LOADED', true );
 
-define( 'FACTORY_BOOTSTRAP_000_DIR', dirname( __FILE__ ) );
-define( 'FACTORY_BOOTSTRAP_000_URL', plugins_url( null, __FILE__ ) );
-
 if ( ! defined( 'FACTORY_FLAT_ADMIN' ) ) {
 	define( 'FACTORY_FLAT_ADMIN', true );
 }
 
-include_once( FACTORY_BOOTSTRAP_000_DIR . '/includes/functions.php' );
+define( 'FACTORY_BOOTSTRAP_000_DIR', dirname( __FILE__ ) );
+define( 'FACTORY_BOOTSTRAP_000_URL', plugins_url( null, __FILE__ ) );
+
+require_once( FACTORY_BOOTSTRAP_000_DIR . '/includes/functions.php' );
+
+/**
+ * @param Wbcr_Factory000_Plugin $plugin
+ */
+add_action( 'wbcr_factory_bootstrap_000_plugin_created', function ( $plugin ) {
+	$manager = new Wbcr_FactoryBootstrap000_Manager( $plugin );
+	$plugin->setBootstap( $manager );
+} );
+
+
