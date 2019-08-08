@@ -23,7 +23,7 @@ if ( defined( 'FACTORY_BOOTSTRAP_000_LOADED' ) ) {
 	return;
 }
 
-define( 'FACTORY_BOOTSTRAP_000_VERSION', '4.1.9' );
+define( 'FACTORY_BOOTSTRAP_000_VERSION', '4.2.0' );
 define( 'FACTORY_BOOTSTRAP_000_LOADED', true );
 
 if ( ! defined( 'FACTORY_FLAT_ADMIN' ) ) {
